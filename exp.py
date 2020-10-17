@@ -1,14 +1,26 @@
 #! /usr/bin/python3
-"""
+"""Overview:
+    exp.py : open a directory or a file looked from WSL2 with Windows Explorer
+             if it is in the Windows filesystem.
+             If no path is specified, current directory is opened.
+Usage:
+    exp.py [<path>]
 
+    exp.py -h | --help
+
+Options:
+    -h --help                Show this screen and exit.
 """
+import dataclasses
 import os
 from subprocess import call
 import re
 import pathlib as p
 import sys
 from functools import reduce
-from typing import List
+
+from docopt import docopt
+from schema import Schema, SchemaError, Use, And
 
 
 class Error(Exception):
@@ -32,6 +44,37 @@ class UsageError(Error):
     pass
 
 
+@dataclasses.dataclass
+class Options:
+    """
+    dataclass for arguments and options
+    """
+    path: p.Path
+
+
+def read_options() -> Options:
+    """
+    read command line arguments and options
+
+    Returns:
+        option class(Options)
+
+    Raises:
+        NotInspectableError: the file or the directory does not exists.
+    """
+    args = docopt(__doc__)
+    schema = Schema({
+        "<path>": And(Use(get_path), lambda path: path.is_file() or path.is_dir(),
+                      error=f"The specified path {args['<path>']}"
+                            + " does not exist.\n")
+    })
+    try:
+        args = schema.validate(args)
+    except SchemaError as e:
+        raise NotInspectableError(e.args[0])
+    return Options(args["<path>"])
+
+
 def wsl2_full_path2windows_path(wsl2_path: p.Path) -> p.PureWindowsPath:
     """
     convert a wsl2 path (posix path) to the corresponding windows path.
@@ -40,13 +83,16 @@ def wsl2_full_path2windows_path(wsl2_path: p.Path) -> p.PureWindowsPath:
 
     Returns:
         windows path(pathlib.Path)
+
     Raises:
         UsageError: wsl2_path is not correct WSL2 path.
     """
     try:
         [(drive, path)] = re.findall(r"^/mnt/([a-z])(/?.*)", wsl2_path.as_posix())
     except ValueError:
-        raise UsageError(f"The input path must be a correct WSL2 path (function {__name__}).")
+        raise UsageError(f"The input path {wsl2_path.as_posix()} is not a correct WSL2 path "
+                         + f"(function {wsl2_full_path2windows_path.__name__} "
+                         + f"in module {__name__}).\n")
     return reduce(lambda reduced, name: reduced.joinpath(name), p.Path(path).parts,
                   p.PureWindowsPath(rf"{drive}:\\"))
 
@@ -63,25 +109,24 @@ def is_wsl2_path(path: p.PurePath) -> bool:
     return re.match(r"^/mnt/[a-z]/", path.as_posix()) is not None
 
 
-def get_path(arguments: List[str]) -> p.Path:
+def get_path(path_str: str) -> p.Path:
     """
     Convert the WSL2 path specified as the command line argument to a pathlib.Path object.
     If nothing is specified, the current directory is used.
     Args:
-        arguments(List[str]): the command line argument
+        path_str(str): the command line argument
 
     Returns:
         path object(pathlib.Path)
     """
-    if len(arguments) == 2:
-        return p.Path(sys.argv[1]).resolve()
-    elif len(arguments) == 1:
+    if len(path_str) == 0:
         return p.Path(".").resolve()
-    raise UsageError(f"# of command line arguments must be 1 (function {__name__}).")
+    return p.Path(path_str).resolve()
 
 
 def open_on_windows(explorer: p.Path, path: p.Path) -> None:
     """
+    open path on Windows with explorer.exe
 
     Args:
         explorer(pathlib.Path): the path to the windows explorer.
@@ -94,8 +139,10 @@ def open_on_windows(explorer: p.Path, path: p.Path) -> None:
         windows_path = wsl2_full_path2windows_path(path)
         call([explorer, windows_path])
         return
-    raise NotInspectableError(f"The specified path {p.Path} is not in the windows filesystem "
-                              + f"(function {__name__}).")
+    raise NotInspectableError(
+        f"The specified path {path.as_posix()} is not in the windows filesystem "
+        + f"(function {open_on_windows.__name__} "
+        + f"in module {__name__}).\n")
 
 
 def main() -> None:
@@ -103,12 +150,12 @@ def main() -> None:
     The main procedure
     """
     if os.name == "nt":
-        print(f"This tool {__file__} is usable only on WSL2.")
+        print(f"This tool {__file__} is usable only on WSL2.\n")
         sys.exit(1)
     try:
+        options: Options = read_options()
         explorer: p.Path = p.Path(r"/mnt") / "c" / "Windows" / "explorer.exe"
-        path: p.Path = get_path(sys.argv)
-        open_on_windows(explorer, path)
+        open_on_windows(explorer, options.path)
     except(UsageError, NotInspectableError) as e:
         sys.stderr.write(e.args[0])
         sys.exit(1)

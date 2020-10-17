@@ -9,6 +9,7 @@ ipython = "*"
 [packages]
 docopt = "*"
 pytest = "*"
+schema = "*"
 
 [requires]
 python_version = "3.8"
