@@ -1,6 +1,8 @@
+import os
+
 import pytest
 
-from exp import is_wsl2_path, wsl2_full_path2windows_path, UsageError, get_path
+from exp import is_wsl2_path, wsl2_full_path2windows_path, UsageError, get_path, NotInspectableError, open_on_windows
 import pathlib as p
 
 
@@ -8,7 +10,8 @@ def test_is_wsl2_path():
     assert is_wsl2_path(p.Path("/mnt/c/home"))
     assert not is_wsl2_path(p.Path("/home/ykanya"))
     assert not is_wsl2_path(p.Path(""))
-    # assert not is_wsl2_path(p.PureWindowsPath(r"C:\\home"))
+    if os.name != "nt":
+        assert not is_wsl2_path(p.PureWindowsPath(r"C:\\home"))
 
 
 def test_wsl2_full_path2windows_path():
@@ -24,10 +27,12 @@ def test_wsl2_full_path2windows_path():
 
 def test_get_path():
     assert get_path(["exp.py"]) == p.Path(".").resolve()
-    # assert get_path(["exp.py", "/home/ykanya"]) == p.Path("/home/ykanya").resolve()
-    # assert get_path((["exp.py", "/home/ykanya/tmp"])) == p.Path("/mnt/z/tmp")
+    if os.name != "nt":
+        assert get_path(["exp.py", "/home/ykanya"]) == p.Path("/home/ykanya").resolve()
+        assert get_path((["exp.py", "/home/ykanya/tmp"])) == p.Path("/mnt/z/tmp")
 
 
-# def test_open_on_windows():
-#     with pytest.raises(NotInspectableError):
-#         open_on_windows(p.Path(r"/mnt") / "c" / "Windows" / "explorer.exe", p.Path("/home/ykanya"))
+def test_open_on_windows():
+    if os.name != "nt":
+        with pytest.raises(NotInspectableError):
+            open_on_windows(p.Path(r"/mnt") / "c" / "Windows" / "explorer.exe", p.Path("/home/ykanya"))
