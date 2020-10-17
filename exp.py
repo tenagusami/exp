@@ -51,7 +51,7 @@ def wsl2_full_path2windows_path(wsl2_path: p.Path) -> p.PureWindowsPath:
                   p.PureWindowsPath(rf"{drive}:\\"))
 
 
-def is_wsl2_path(path: p.Path) -> bool:
+def is_wsl2_path(path: p.PurePath) -> bool:
     """
     Whether the given path is a correct WSL2 path.
     Args:
