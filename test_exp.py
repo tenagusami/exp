@@ -28,6 +28,7 @@ def test_wsl2_full_path2windows_path():
 
 def test_get_path():
     assert get_path("") == p.Path(".").resolve()
+    assert get_path(None) == p.Path(".").resolve()
     if os.name != "nt":
         assert get_path("/home/ykanya") == p.Path("/home/ykanya").resolve()
         assert get_path("/home/ykanya/tmp") == p.Path("/mnt/z/tmp")

@@ -119,7 +119,7 @@ def get_path(path_str: str) -> p.Path:
     Returns:
         path object(pathlib.Path)
     """
-    if len(path_str) == 0:
+    if path_str is None or len(path_str) == 0:
         return p.Path(".").resolve()
     return p.Path(path_str).resolve()
 
