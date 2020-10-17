@@ -159,6 +159,8 @@ def main() -> None:
     except(UsageError, NotInspectableError) as e:
         sys.stderr.write(e.args[0])
         sys.exit(1)
+    except KeyboardInterrupt:
+        sys.exit(1)
 
 
 if __name__ == '__main__':
