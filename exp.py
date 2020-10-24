@@ -18,6 +18,7 @@ import re
 import pathlib as p
 import sys
 from functools import reduce
+from typing import Optional
 
 from docopt import docopt
 from schema import Schema, SchemaError, Use, And
@@ -109,7 +110,7 @@ def is_wsl2_path(path: p.PurePath) -> bool:
     return re.match(r"^/mnt/[a-z]/", path.as_posix()) is not None
 
 
-def get_path(path_str: str) -> p.Path:
+def get_path(path_str: Optional[str]) -> p.Path:
     """
     Convert the WSL2 path specified as the command line argument to a pathlib.Path object.
     If nothing is specified, the current directory is used.
